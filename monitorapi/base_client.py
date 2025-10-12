@@ -40,21 +40,13 @@ class BaseClient(ABC):
 
     @staticmethod
     def _log_request_response(request: httpx.Request, response: httpx.Response | None = None) -> None:
-        if response and response.is_error:
-            level = logging.WARNING
-        elif response:
-            level = logging.INFO
-        else:
-            level = logging.ERROR
-        logger.log(level, "Request:")
-        logger.log(level, f"URL: {request.url}")
-        logger.log(level, f"Headers: {request.headers.items()}")
-        logger.log(level, f"Body: {request.content!r}")
+        logger.debug(f"Request URL: {request.url!r}")
+        logger.debug(f"Request headers: {request.headers.raw}!r")
+        logger.debug(f"Request body: {request.content!r}")
         if response:
-            logger.log(level, "Response:")
-            logger.log(level, f"Status: {response.status_code}")
-            logger.log(level, f"Headers: {response.headers.items()}")
-            logger.log(level, f"Body: {response.content!r}")
+            logger.debug(f"Response status: {response.status_code!r}")
+            logger.debug(f"Response headers: {response.headers.raw!r}")
+            logger.debug(f"Response body: {response.content!r}")
 
     def _create_login_request(self) -> httpx.Request:
         request = httpx.Request(
@@ -72,15 +64,13 @@ class BaseClient(ABC):
         if response.is_success:
             data = response.json()
             if data["SessionSuspended"]:
-                logger.warning("Session suspended")
-                raise exc.SessionSuspended(response.text)
+                logger.error(f"Session suspended: {response.text!r}")
+                raise exc.SessionSuspended()
             else:
                 self.x_monitor_session_id = response.headers.get(X_MONITOR_SESSION_ID_HEADER)
-                logger.debug(f"Refreshed session id: '{self.x_monitor_session_id}'")
-                return None
         else:
-            logger.warning(f"Login failed with status '{response.status_code}'")
-            raise exc.LoginFailed(response.text)
+            logger.error(f"Login failed: {response.text!r}")
+            raise exc.LoginFailed()
     
     def _refresh_auth_header(self, request: httpx.Request) -> httpx.Request:
         request.headers[X_MONITOR_SESSION_ID_HEADER] = self.x_monitor_session_id
@@ -103,14 +93,18 @@ class BaseClient(ABC):
         Returns the response back for further handling if no error matched.
         """
         if response.status_code == 401:
-            raise exc.InvalidSessionId(response.text)
+            logger.error(f"Invalid session id: {response.text!r}")
+            raise exc.InvalidSessionId()
         if response.status_code == 403:
             if response.text == "Monitor.API is not available for this system":
-                raise exc.ApiNotAvailable(response.text)
+                logger.error(f"API not available: {response.text!r}")
+                raise exc.ApiNotAvailable()
             else:
-                raise exc.SessionSuspended(response.text)
+                logger.error(f"Session suspended: {response.text!r}")
+                raise exc.SessionSuspended()
         if response.status_code == 500:
-            raise exc.UnhandledException(response.text)
+            logger.error(f"Unhandled exception: {response.text!r}")
+            raise exc.UnhandledException()
         return response
     
     def _needs_retry(self, response: httpx.Response) -> bool:
@@ -192,13 +186,17 @@ class BaseClient(ABC):
         else:
             if response.status_code == 400:
                 if "Id" in response.text:
-                    raise exc.QueryInvalidId(response.text)
+                    logger.error(f"Invalid query id: {response.text!r}")
+                    raise exc.QueryInvalidId()
                 else:
-                    raise exc.QueryInvalidFilter(response.text)
+                    logger.error(f"Invalid query filter: {response.text!r}")
+                    raise exc.QueryInvalidFilter()
             if response.status_code == 404:
-                raise exc.QueryEntityNotFound(response.text)
+                logger.error(f"Query entity not found: {response.text!r}")
+                raise exc.QueryEntityNotFound()
             response = self._general_error_response_handler(response)
-            raise exc.QueryError(response.text)
+            logger.error(f"Query error: {response.text!r}")
+            raise exc.QueryError()
 
     def _create_command_request(self,
         module: str,
@@ -263,16 +261,21 @@ class BaseClient(ABC):
                 return response.json()
         else:
             if response.status_code == 400:
-                raise exc.CommandValidationFailure(response.text)
+                logger.error(f"Command validation failure: {response.text!r}")
+                raise exc.CommandValidationFailure()
             if response.status_code == 404:
                 if "id" in response.text:
-                    raise exc.CommandEntityNotFound(response.text)
+                    logger.error(f"Command entity not found: {response.text!r}")
+                    raise exc.CommandEntityNotFound()
                 else:
-                    raise exc.CommandNotFound(response.text)
+                    logger.error(f"Command not found: {response.text!r}")
+                    raise exc.CommandNotFound()
             if response.status_code == 409:
-                raise exc.CommandConflict(response.text)
+                logger.error(f"Command conflict: {response.text!r}")
+                raise exc.CommandConflict()
             response = self._general_error_response_handler(response)
-            raise exc.CommandError(response.text)
+            logger.error(f"Command error: {response.text!r}")
+            raise exc.CommandError()
 
     def _create_batch_request(self,
         commands: list[BatchCommandEntity],
@@ -315,6 +318,7 @@ class BaseClient(ABC):
             if "IsSuccessful" in batch_response and not batch_response["IsSuccessful"] and raise_on_error:
                 error_message = batch_response["ErrorMessage"]
                 failing_index = batch_response["FailingIndex"]
+                logger.error(f"Batch command error at index {failing_index}: {error_message}")
                 raise exc.BatchCommandError(f"At index {failing_index}: {error_message}")
             else:
                 return batch_response
