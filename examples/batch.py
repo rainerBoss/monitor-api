@@ -1,21 +1,11 @@
 import os
-import logging
-import sys
 from dotenv import load_dotenv
 
+import examples.logcfg
 from monitorapi.sync_client import SyncClient
 
 
 load_dotenv(".env")
-
-root = logging.getLogger("monitor_erp_api_client")
-root.setLevel(logging.INFO)
-
-handler = logging.StreamHandler(sys.stdout)
-handler.setLevel(logging.DEBUG)
-formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-handler.setFormatter(formatter)
-root.addHandler(handler)
 
 def example() -> None:
     client = SyncClient(

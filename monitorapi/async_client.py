@@ -27,20 +27,29 @@ class AsyncClient(BaseClient):
             request = self._refresh_auth_header(request)
             logger.debug(f"Sending API request to {request.url!r}")
             response = await self.client.send(request)
-
-            if self._needs_retry(response):
-                logger.warning(f"Retrying API request: {request.url!r}")
-                await self.login()
-                request = self._refresh_auth_header(request)
-                response = await self.client.send(request)
-            
-            return response
         except httpx.HTTPError as e:
             http_error = e.__doc__.strip() if e.__doc__ else e.__class__.__name__
             logger.error(f"API request http error: {http_error}")
             raise exc.RequestError()
         finally:
             self._log_request_response(request, response)
+
+        if self._needs_retry(response):
+            logger.warning(f"Retrying API request: {request.url!r}")
+            await self.login()
+            try:
+                response = None
+                request = self._refresh_auth_header(request)
+                logger.debug(f"Sending API request to {request.url!r}")
+                response = await self.client.send(request)
+            except httpx.HTTPError as e:
+                http_error = e.__doc__.strip() if e.__doc__ else e.__class__.__name__
+                logger.error(f"API request http error: {http_error}")
+                raise exc.RequestError()
+            finally:
+                self._log_request_response(request, response)
+        
+        return response
 
     async def login(self):
         self._login_happening = True

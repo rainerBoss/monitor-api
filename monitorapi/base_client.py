@@ -40,7 +40,7 @@ class BaseClient(ABC):
 
     @staticmethod
     def _log_request_response(request: httpx.Request, response: httpx.Response | None = None) -> None:
-        logger.debug(f"Request URL: {request.url!r}")
+        logger.debug(f"Request: {request.method!r} {request.url!r}")
         logger.debug(f"Request headers: {request.headers.raw}!r")
         logger.debug(f"Request body: {request.content!r}")
         if response:
@@ -130,7 +130,7 @@ class BaseClient(ABC):
         if id is None:
             _id = ''
         else:
-            _id = str(id)
+            _id = f"/{_id}"
 
         params: dict[str, str] = {}
         if filter is not None:
@@ -147,12 +147,14 @@ class BaseClient(ABC):
             params["$skip"] = str(skip)
 
         request = httpx.Request(
-            method="GET",
+            method="POST",
             headers={
-                X_MONITOR_SESSION_ID_HEADER: self.x_monitor_session_id
+                X_MONITOR_SESSION_ID_HEADER: self.x_monitor_session_id,
+                "Accept": "application/json",
+                "Content-Type": "x-www-form-urlencoded"
             },
-            url=f"{self.base_url}/{language}/{self.company_number}/api/{self.api_version}/{module}/{entity}/{_id}",
-            params=params,
+            url=f"{self.base_url}/{language}/{self.company_number}/api/{self.api_version}/{module}/{entity}{_id}",
+            data=params,
         )
         return request
     
@@ -167,7 +169,7 @@ class BaseClient(ABC):
         expand: str | None = None,
         orderby: str | None = None,
         top: int | None = None,
-        skip: int | None = None
+        skip: int | None = None,
     ) -> Any:
         """
         Calls MonitorERP API query interface.
@@ -224,7 +226,7 @@ class BaseClient(ABC):
         request = httpx.Request(
             method="POST",
             headers={
-                X_MONITOR_SESSION_ID_HEADER: self.x_monitor_session_id
+                X_MONITOR_SESSION_ID_HEADER: self.x_monitor_session_id,
             },
             url=f"{self.base_url}/{language}/{self.company_number}/api/{self.api_version}/{module}/{namespace}/{command}{_many}{sim_or_val}",
             json=body,
