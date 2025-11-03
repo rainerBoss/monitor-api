@@ -51,6 +51,11 @@ class SyncClient(BaseClient):
         return response
 
     def login(self) -> None:
+        if self._login_happening:
+            logger.warning("Waiting for login to end...")
+            while self._login_happening:
+                time.sleep(0.01)
+                return
         self._login_happening = True
         logger.warning("Performing login...")
         try:

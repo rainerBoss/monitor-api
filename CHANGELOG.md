@@ -6,6 +6,9 @@
 ### Changed
 - Query now uses POST request. Discovered that URLs can exceed maximum length from too large query params
 
+### Fixed
+- Fixed concurrent requests all trying to login by adding another login check in login function
+
 
 ## [0.3.1] - 12.10.2025
 

@@ -52,6 +52,11 @@ class AsyncClient(BaseClient):
         return response
 
     async def login(self):
+        async with self._condition:
+            while self._login_happening:
+                logger.warning("Waiting for login to end...")
+                await self._condition.wait()
+                return
         self._login_happening = True
         logger.warning("Performing login...")
         try:
