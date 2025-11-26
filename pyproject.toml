@@ -3,7 +3,7 @@ name = "monitor-api-client"
 authors = [
     { name="rainerBoss"}
 ]
-version = "0.3.2"
+version = "0.4.0"
 description = "Client for calling MonitorERP API"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -11,6 +11,9 @@ dependencies = [
     "httpx>=0.28.1",
 ]
 license = { file = "LICENSE.txt" }
+
+[tool.mypy]
+strict = true
 
 [dependency-groups]
 dev = [

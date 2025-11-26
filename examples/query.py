@@ -1,10 +1,10 @@
 import os
 from dotenv import load_dotenv
 
-import examples.logcfg
+from examples.config import logging_config
 from monitorapi.sync_client import SyncClient
 
-
+logging_config()
 load_dotenv(".env")
 
 def example() -> None:
@@ -17,12 +17,31 @@ def example() -> None:
     parts = client.query(
         module="Inventory",
         entity="Parts",
-        select="Id,PartNumber",
         expand="PackageType",
+        select="Id,PartNumber",
         filter="strcontains(PartNumber,69)",
         orderby="PartNumber desc",
         top=5,
         skip=50,
     )
-    print(parts)
+    for part in parts:
+        print(part)
+
+    language_codes = client.query(
+        module="Common",
+        entity="LanguageCodes",
+        select="Code",
+        post=True,
+    )
+    codes = [code["Code"] for code in language_codes] 
+    print(codes)
+    
+    rejection_codes = client.query(
+        module="Common",
+        entity="RejectionCodeItems",
+        language=next(iter(codes)),
+    )    
+    print(rejection_codes)
+
+
 example()

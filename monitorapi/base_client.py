@@ -76,16 +76,6 @@ class BaseClient(ABC):
         request.headers[X_MONITOR_SESSION_ID_HEADER] = self.x_monitor_session_id
         return request
 
-    @abstractmethod
-    def login(self) -> None:
-        """
-        Calls login endpoint and updates the X-Monitor-SessionId.
-
-        Raises:
-            RequestError and subtypes.
-            AuthError and subtypes.
-        """
-
     def _general_error_response_handler(self, response: httpx.Response) -> httpx.Response:
         """
         Check if response contains any documented general errors.
@@ -115,14 +105,15 @@ class BaseClient(ABC):
     def _create_query_request(self,
         module: str,
         entity: str,
-        id: int | None = None,
-        language: str | None  = None,
-        filter: str  | None = None,
-        select: str | None = None,
-        expand: str | None = None,
-        orderby: str | None = None,
-        top: int | None = None,
-        skip: int | None = None
+        id: int | None,
+        language: str | None ,
+        filter: str  | None,
+        select: str | None,
+        expand: str | None,
+        orderby: str | None,
+        top: int | None,
+        skip: int | None,
+        post: bool,
     ) -> httpx.Request:
         if not language:
             language = self.language_code
@@ -130,9 +121,10 @@ class BaseClient(ABC):
         if id is None:
             _id = ''
         else:
-            _id = f"/{_id}"
+            _id = f"/{id}"
 
         params: dict[str, str] = {}
+
         if filter is not None:
             params["$filter"] = filter
         if select is not None:
@@ -146,17 +138,28 @@ class BaseClient(ABC):
         if skip is not None:
             params["$skip"] = str(skip)
 
-        request = httpx.Request(
-            method="POST",
-            headers={
-                X_MONITOR_SESSION_ID_HEADER: self.x_monitor_session_id,
-                "Accept": "application/json",
-                "Content-Type": "x-www-form-urlencoded"
-            },
-            url=f"{self.base_url}/{language}/{self.company_number}/api/{self.api_version}/{module}/{entity}{_id}",
-            data=params,
-        )
-        return request
+        if post:
+            return httpx.Request(
+                method="POST",
+                headers={
+                    X_MONITOR_SESSION_ID_HEADER: self.x_monitor_session_id,
+                    "Accept": "application/json",
+                    "Content-Type": "x-www-form-urlencoded"
+                },
+                url=f"{self.base_url}/{language}/{self.company_number}/api/{self.api_version}/{module}/{entity}{_id}",
+                data=params,
+            )
+        else:
+            return httpx.Request(
+                method="GET",
+                headers={
+                    X_MONITOR_SESSION_ID_HEADER: self.x_monitor_session_id,
+                    "Accept": "application/json",
+                    "Content-Type": "x-www-form-urlencoded"
+                },
+                url=f"{self.base_url}/{language}/{self.company_number}/api/{self.api_version}/{module}/{entity}{_id}",
+                params=params,
+            )
     
     @abstractmethod
     def query(self,
@@ -170,6 +173,7 @@ class BaseClient(ABC):
         orderby: str | None = None,
         top: int | None = None,
         skip: int | None = None,
+        post: bool = False,
     ) -> Any:
         """
         Calls MonitorERP API query interface.
@@ -204,11 +208,11 @@ class BaseClient(ABC):
         module: str,
         namespace: str,
         command: str,
-        body: Any | None = None,
-        many: bool = False,
-        simulate: bool = False,
-        validate: bool = False,
-        language: str | None = None,
+        body: Any | None,
+        many: bool,
+        simulate: bool,
+        validate: bool,
+        language: str | None,
     ) -> httpx.Request:
         if not language:
             language = self.language_code

@@ -6,7 +6,7 @@
 <div class="termy">
 
 ```console
-from monitorapi import SyncClient
+from monitorapi.sync_client import SyncClient
 
 client = SyncClient(
     company_number="000.0",

@@ -1,10 +1,10 @@
 import os
 from dotenv import load_dotenv
 
-import examples.logcfg
+from examples.config import logging_config
 from monitorapi.sync_client import SyncClient
 
-
+logging_config()
 load_dotenv(".env")
 
 def example() -> None:

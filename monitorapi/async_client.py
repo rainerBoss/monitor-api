@@ -11,7 +11,16 @@ logger = logging.getLogger(__name__)
 
 class AsyncClient(BaseClient):
 
-    def __init__(self, company_number, username, password, base_url, language_code = "en", api_version = "v1", x_monitor_session_id = None, timeout = 10) -> None:
+    def __init__(self,
+        company_number: str,
+        username: str,
+        password: str,
+        base_url: str,
+        language_code: str = "en",
+        api_version: str = "v1",
+        x_monitor_session_id: str | None = None,
+        timeout: int = 10,
+    ) -> None:
         super().__init__(company_number, username, password, base_url, language_code, api_version, x_monitor_session_id, timeout)
         self.client = httpx.AsyncClient(timeout=timeout, verify=False)
         self._condition = asyncio.Condition()
@@ -51,12 +60,13 @@ class AsyncClient(BaseClient):
         
         return response
 
-    async def login(self):
+    async def login(self) -> None:
         async with self._condition:
             while self._login_happening:
                 logger.warning("Waiting for login to end...")
                 await self._condition.wait()
-                return
+                return None
+            
         self._login_happening = True
         logger.warning("Performing login...")
         try:
@@ -65,6 +75,7 @@ class AsyncClient(BaseClient):
             try:
                 response = await self.client.send(request)
                 self._handle_login_response(response)
+                return None
             except httpx.HTTPError as e:
                 http_error = e.__doc__.strip() if e.__doc__ else e.__class__.__name__
                 logger.error(f"Login request http error: {http_error!r}")
@@ -85,9 +96,10 @@ class AsyncClient(BaseClient):
         expand: str | None = None,
         orderby: str | None = None,
         top: int | None = None,
-        skip: int | None = None
+        skip: int | None = None,
+        post: bool = False,
     ) -> Any:
-        request = self._create_query_request(module, entity, id, language, filter, select, expand, orderby, top, skip)
+        request = self._create_query_request(module, entity, id, language, filter, select, expand, orderby, top, skip, post)
         response = await self._make_api_request(request)
         return self._handle_query_response(response)
 

@@ -11,7 +11,16 @@ logger = logging.getLogger(__name__)
 
 class SyncClient(BaseClient):
 
-    def __init__(self, company_number, username, password, base_url, language_code = "en", api_version = "v1", x_monitor_session_id = None, timeout = 10) -> None:
+    def __init__(self,
+        company_number: str,
+        username: str,
+        password: str,
+        base_url: str,
+        language_code: str = "en",
+        api_version: str = "v1",
+        x_monitor_session_id: str | None = None,
+        timeout: int = 10,
+    ) -> None:
         super().__init__(company_number, username, password, base_url, language_code, api_version, x_monitor_session_id, timeout)
         self.client = httpx.Client(timeout=timeout, verify=False)
         self._login_happening = False
@@ -82,9 +91,10 @@ class SyncClient(BaseClient):
         expand: str | None = None,
         orderby: str | None = None,
         top: int | None = None,
-        skip: int | None = None
+        skip: int | None = None,
+        post: bool = False,
     ) -> Any:
-        request = self._create_query_request(module, entity, id, language, filter, select, expand, orderby, top, skip)
+        request = self._create_query_request(module, entity, id, language, filter, select, expand, orderby, top, skip, post)
         response = self._make_api_request(request)
         return self._handle_query_response(response)
 

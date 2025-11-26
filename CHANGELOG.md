@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.4.0] - 26.11.2025
+
+### Added
+- Added parameter to specify HTTP method for Query
+
+### Changed
+- Updated README.md
+
+### Fixed
+- Fixed Query Id bug
 
 ## [0.3.2] - 14.10.2025
 
